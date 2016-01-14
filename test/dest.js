@@ -1447,6 +1447,56 @@ describe('dest stream', function() {
     destStream.removeListener('data', onData);
   });
 
+  it('sinks the stream if a writeable stream is unpiped', function(done) {
+    this.timeout(0);
+    fs.mkdirSync(path.join(__dirname, './fixtures/highwatermark'));
+    for (var idx = 0; idx < 17; idx++) {
+      fs.writeFileSync(path.join(__dirname, './fixtures/highwatermark/', 'file' + idx + '.txt'));
+    }
+
+    var srcPath = path.join(__dirname, './fixtures/highwatermark/*.txt');
+    var srcStream = vfs.src(srcPath);
+    var destStream = vfs.dest('./out-fixtures/', { cwd: __dirname });
+
+    var fileCount = 0;
+    var countFiles = through.obj({ highWaterMark: 1 }, function(file, enc, cb) {
+      console.log('count');
+      fileCount++;
+
+      setTimeout(function() {
+        cb(null, file);
+      }, 200);
+    });
+
+    var unpipeStream = new Writeable({
+      highWaterMark: 1,
+      objectMode: true,
+      write: function(file, enc, cb) {
+        console.log('unpipeStream');
+        setTimeout(function() {
+          cb(null, file);
+        }, 200);
+      },
+    });
+
+    var stream = srcStream
+      .pipe(countFiles)
+      .pipe(destStream);
+
+    destStream.once('finish', function() {
+      console.log('finish', fileCount);
+      fileCount.should.equal(17);
+      done();
+    });
+
+    stream.pipe(unpipeStream);
+
+    setTimeout(function() {
+      console.log('unpipe it');
+      stream.unpipe(unpipeStream);
+    }, 1000);
+  });
+
   it('should pass options to through2', function(done) {
     var srcPath = path.join(__dirname, './fixtures/test.coffee');
     var content = fs.readFileSync(srcPath);
