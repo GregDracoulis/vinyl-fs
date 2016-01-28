@@ -1420,6 +1420,9 @@ describe('dest stream', function() {
   });
 
   it('sinks the stream if all the data event handlers are removed', function(done) {
+
+    this.timeout(10000);
+
     fs.mkdirSync(path.join(__dirname, './fixtures/highwatermark'));
     for (var idx = 0; idx < 17; idx++) {
       fs.writeFileSync(path.join(__dirname, './fixtures/highwatermark/', 'file' + idx + '.txt'));
