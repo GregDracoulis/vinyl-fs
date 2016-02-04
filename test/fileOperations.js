@@ -114,6 +114,17 @@ describe('getModeDiff', function() {
     done();
   });
 
+  it('returns 0 if vinyl mode is not a number', function(done) {
+    var fsMode = parseInt('777', 8);
+    var vfsMode = undefined;
+
+    var result = getModeDiff(fsMode, vfsMode);
+
+    expect(result).toEqual(0);
+
+    done();
+  });
+
   it('returns a value greater than 0 if modes are different', function(done) {
     var fsMode = parseInt('777', 8);
     var vfsMode = parseInt('744', 8);
