@@ -6,6 +6,7 @@ var fs = require('graceful-fs');
 var del = require('del');
 var path = require('path');
 var File = require('vinyl');
+var defaultResolution = require('default-resolution');
 
 var closeFd = require('../lib/dest/fileOperations/closeFd');
 var isOwner = require('../lib/dest/fileOperations/isOwner');
@@ -13,6 +14,8 @@ var writeFile = require('../lib/dest/fileOperations/writeFile');
 var getModeDiff = require('../lib/dest/fileOperations/getModeDiff');
 var getTimesDiff = require('../lib/dest/fileOperations/getTimesDiff');
 var updateMetadata = require('../lib/dest/fileOperations/updateMetadata');
+
+var resolution = defaultResolution();
 
 var MASK_MODE = parseInt('777', 8);
 
@@ -655,10 +658,14 @@ describe('updateMetadata', function() {
     updateMetadata(fd, file, function(err, fd2) {
       expect(futimesSpy.calls.length).toEqual(1);
       var stats = fs.fstatSync(fd);
+      var mtimeMs = Date.parse(file.stat.mtime);
+      var mtime = resolution ? mtimeMs - (mtimeMs % resolution) : mtimeMs;
+      var atimeMs = Date.parse(file.stat.atime);
+      var atime = resolution ? atimeMs - (atimeMs % resolution) : atimeMs;
       expect(file.stat.mtime).toEqual(new Date(then));
-      expect(file.stat.mtime).toEqual(stats.mtime);
+      expect(mtime).toEqual(Date.parse(stats.mtime));
       expect(file.stat.atime).toEqual(new Date(then));
-      // TODO: fs atime gets updated when we fstatSync so we can't compare
+      expect(atime).toEqual(Date.parse(stats.atime));
 
       fs.close(fd2, done);
     });
