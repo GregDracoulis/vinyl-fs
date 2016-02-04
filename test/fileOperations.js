@@ -4,6 +4,7 @@ var expect = require('expect');
 
 var isOwner = require('../lib/dest/fileOperations/isOwner');
 var getModeDiff = require('../lib/dest/fileOperations/getModeDiff');
+var getTimesDiff = require('../lib/dest/fileOperations/getTimesDiff');
 
 function noop() {}
 
@@ -130,6 +131,150 @@ describe('getModeDiff', function() {
     var result = getModeDiff(fsMode, vfsMode);
 
     expect(result).toEqual(0);
+
+    done();
+  });
+});
+
+describe('getTimesDiff', function() {
+
+  it('returns undefined if vinyl mtime is not a valid date', function(done) {
+    var fsStat = {
+      mtime: new Date(),
+    };
+    var vfsStat = {
+      mtime: new Date(undefined),
+    };
+
+    var result = getTimesDiff(fsStat, vfsStat);
+
+    expect(result).toEqual(undefined);
+
+    done();
+  });
+
+  it('returns undefined if vinyl mtime & atime are both equal to counterparts', function(done) {
+    var now = Date.now();
+    var fsStat = {
+      mtime: new Date(now),
+      atime: new Date(now),
+    };
+    var vfsStat = {
+      mtime: new Date(now),
+      atime: new Date(now),
+    };
+
+    var result = getTimesDiff(fsStat, vfsStat);
+
+    expect(result).toEqual(undefined);
+
+    done();
+  });
+
+  // TODO: is this proper/expected?
+  it('returns undefined if vinyl mtimes equals the counterpart and atimes are null', function(done) {
+    var now = Date.now();
+    var fsStat = {
+      mtime: new Date(now),
+      atime: null,
+    };
+    var vfsStat = {
+      mtime: new Date(now),
+      atime: null,
+    };
+
+    var result = getTimesDiff(fsStat, vfsStat);
+
+    expect(result).toEqual(undefined);
+
+    done();
+  });
+
+  it('returns a diff object if mtimes do not match', function(done) {
+    var now = Date.now();
+    var then = now - 1000;
+    var fsStat = {
+      mtime: new Date(now),
+    };
+    var vfsStat = {
+      mtime: new Date(then),
+    };
+    var expected = {
+      mtime: new Date(then),
+      atime: undefined,
+    };
+
+    var result = getTimesDiff(fsStat, vfsStat);
+
+    expect(result).toEqual(expected);
+
+    done();
+  });
+
+  it('returns a diff object if atimes do not match', function(done) {
+    var now = Date.now();
+    var then = now - 1000;
+    var fsStat = {
+      mtime: new Date(now),
+      atime: new Date(now),
+    };
+    var vfsStat = {
+      mtime: new Date(now),
+      atime: new Date(then),
+    };
+    var expected = {
+      mtime: new Date(now),
+      atime: new Date(then),
+    };
+
+    var result = getTimesDiff(fsStat, vfsStat);
+
+    expect(result).toEqual(expected);
+
+    done();
+  });
+
+  it('returns the fs atime if the vinyl atime is invalid', function(done) {
+    var now = Date.now();
+    var fsStat = {
+      mtime: new Date(now),
+      atime: new Date(now),
+    };
+    var vfsStat = {
+      mtime: new Date(now),
+      atime: new Date(undefined),
+    };
+    var expected = {
+      mtime: new Date(now),
+      atime: new Date(now),
+    };
+
+    var result = getTimesDiff(fsStat, vfsStat);
+
+    expect(result).toEqual(expected);
+
+    done();
+  });
+
+  // TODO: is this proper/expected?
+  it('makes atime diff undefined if fs and vinyl atime are invalid', function(done) {
+    var now = Date.now();
+    var fsStat = {
+      mtime: new Date(now),
+      atime: new Date(undefined),
+    };
+    var vfsStat = {
+      mtime: new Date(now),
+      atime: new Date(undefined),
+    };
+    var expected = {
+      mtime: new Date(now),
+      atime: undefined,
+    };
+
+    var result = getTimesDiff(fsStat, vfsStat);
+
+    expect(result).toEqual(expected);
 
     done();
   });
