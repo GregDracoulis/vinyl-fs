@@ -3,6 +3,7 @@
 var expect = require('expect');
 
 var isOwner = require('../lib/dest/fileOperations/isOwner');
+var getModeDiff = require('../lib/dest/fileOperations/getModeDiff');
 
 function noop() {}
 
@@ -82,6 +83,53 @@ describe('isOwner', function() {
     var result = isOwner(nonOwnerStat);
 
     expect(result).toEqual(true);
+
+    done();
+  });
+});
+
+describe('getModeDiff', function() {
+
+  it('returns 0 if both modes are the same', function(done) {
+    var fsMode = parseInt('777', 8);
+    var vfsMode = parseInt('777', 8);
+
+    var result = getModeDiff(fsMode, vfsMode);
+
+    expect(result).toEqual(0);
+
+    done();
+  });
+
+  it('returns a value greater than 0 if modes are different', function(done) {
+    var fsMode = parseInt('777', 8);
+    var vfsMode = parseInt('744', 8);
+
+    var result = getModeDiff(fsMode, vfsMode);
+
+    expect(result).toEqual(27);
+
+    done();
+  });
+
+  it('does not matter the order of diffing', function(done) {
+    var fsMode = parseInt('655', 8);
+    var vfsMode = parseInt('777', 8);
+
+    var result = getModeDiff(fsMode, vfsMode);
+
+    expect(result).toEqual(82);
+
+    done();
+  });
+
+  it('ignores the sticky/setuid/setgid bits', function(done) {
+    var fsMode = parseInt('1777', 8);
+    var vfsMode = parseInt('4777', 8);
+
+    var result = getModeDiff(fsMode, vfsMode);
+
+    expect(result).toEqual(0);
 
     done();
   });
