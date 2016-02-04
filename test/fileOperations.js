@@ -2,6 +2,10 @@
 
 var expect = require('expect');
 
+var fs = require('graceful-fs');
+var path = require('path');
+
+var closeFd = require('../lib/dest/fileOperations/closeFd');
 var isOwner = require('../lib/dest/fileOperations/isOwner');
 var getModeDiff = require('../lib/dest/fileOperations/getModeDiff');
 var getTimesDiff = require('../lib/dest/fileOperations/getTimesDiff');
@@ -277,5 +281,68 @@ describe('getTimesDiff', function() {
     expect(result).toEqual(expected);
 
     done();
+  });
+});
+
+describe('closeFd', function() {
+
+  it('calls the callback with propagated error if fd is not a number', function(done) {
+    var propagatedError = new Error();
+
+    closeFd(propagatedError, null, function(err) {
+      expect(err).toEqual(propagatedError);
+
+      done();
+    });
+  });
+
+  it('calls the callback with close error if no error to propagate', function(done) {
+    closeFd(null, 9001, function(err) {
+      expect(err).toExist();
+
+      done();
+    });
+  });
+
+  it('calls the callback with propagated error if close errors', function(done) {
+    var propagatedError = new Error();
+
+    closeFd(propagatedError, 9001, function(err) {
+      expect(err).toEqual(propagatedError);
+
+      done();
+    });
+  });
+
+  it('calls the callback with propagated error if close succeeds', function(done) {
+    var propagatedError = new Error();
+
+    var fd = fs.openSync(path.join(__dirname, './fixtures/test.coffee'), 'r');
+
+    var spy = expect.spyOn(fs, 'close').andCallThrough();
+
+    closeFd(propagatedError, fd, function(err) {
+      spy.restore();
+
+      expect(spy.calls.length).toEqual(1);
+      expect(err).toEqual(propagatedError);
+
+      done();
+    });
+  });
+
+  it('calls the callback with no error if close succeeds & no propagated error', function(done) {
+    var fd = fs.openSync(path.join(__dirname, './fixtures/test.coffee'), 'r');
+
+    var spy = expect.spyOn(fs, 'close').andCallThrough();
+
+    closeFd(null, fd, function(err) {
+      spy.restore();
+
+      expect(spy.calls.length).toEqual(1);
+      expect(err).toEqual(undefined);
+
+      done();
+    });
   });
 });
