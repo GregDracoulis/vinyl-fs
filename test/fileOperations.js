@@ -5,12 +5,14 @@ var expect = require('expect');
 var fs = require('graceful-fs');
 var del = require('del');
 var path = require('path');
+var File = require('vinyl');
 
 var closeFd = require('../lib/dest/fileOperations/closeFd');
 var isOwner = require('../lib/dest/fileOperations/isOwner');
 var writeFile = require('../lib/dest/fileOperations/writeFile');
 var getModeDiff = require('../lib/dest/fileOperations/getModeDiff');
 var getTimesDiff = require('../lib/dest/fileOperations/getTimesDiff');
+var updateMetadata = require('../lib/dest/fileOperations/updateMetadata');
 
 var MASK_MODE = parseInt('777', 8);
 
@@ -544,6 +546,121 @@ describe('writeFile', function() {
       expect(typeof fd === 'number').toEqual(true);
 
       fs.close(fd, done);
+    });
+  });
+});
+
+describe('updateMetadata', function() {
+
+  var inputPath = path.join(__dirname, './fixtures/stats.txt');
+  var file;
+
+  beforeEach(function(done) {
+    file = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: inputPath,
+      contents: null,
+      stat: {
+
+      },
+    });
+
+    done();
+  });
+
+  afterEach(function(done) {
+    expect.restoreSpies();
+
+    del.sync(inputPath);
+
+    if (process.geteuid === noop) {
+      delete process.geteuid;
+    }
+
+    done();
+  });
+
+  it('passes the error and file descriptor if fstat fails', function(done) {
+    var fd = 9001;
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(err).toExist();
+      expect(typeof fd === 'number').toEqual(true);
+      expect(fd2).toEqual(fd);
+
+      done();
+    });
+  });
+
+  it('updates the vinyl object with fs stats', function(done) {
+    var fd = fs.openSync(inputPath, 'w+');
+    var stats = fs.fstatSync(fd);
+
+    updateMetadata(fd, file, function(err, fd2) {
+      // Not sure why .toEqual doesn't match these
+      Object.keys(file.stat).forEach(function(key) {
+        expect(file.stat[key]).toEqual(stats[key]);
+      });
+
+      fs.close(fd2, done);
+    });
+  });
+
+  it('does not touch the fs if nothing to update', function(done) {
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
+    var futimesSpy = expect.spyOn(fs, 'futimes').andCallThrough();
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(fchmodSpy.calls.length).toEqual(0);
+      expect(futimesSpy.calls.length).toEqual(0);
+
+      fs.close(fd2, done);
+    });
+  });
+
+  it('does not touch the fs if process is not owner of the file', function(done) {
+    if (typeof process.geteuid !== 'function') {
+      process.geteuid = noop;
+    }
+
+    expect.spyOn(process, 'geteuid').andReturn(9002);
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
+    var futimesSpy = expect.spyOn(fs, 'futimes').andCallThrough();
+
+    file.stat.mtime = new Date(Date.now() - 1000);
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(fchmodSpy.calls.length).toEqual(0);
+      expect(futimesSpy.calls.length).toEqual(0);
+
+      fs.close(fd2, done);
+    });
+  });
+
+  it('updates times on fs and vinyl object if there is a diff', function(done) {
+    var futimesSpy = expect.spyOn(fs, 'futimes').andCallThrough();
+
+    var now = Date.now();
+    var then = now - 1000;
+    file.stat.mtime = new Date(then);
+    file.stat.atime = new Date(then);
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(futimesSpy.calls.length).toEqual(1);
+      var stats = fs.fstatSync(fd);
+      expect(file.stat.mtime).toEqual(new Date(then));
+      expect(file.stat.mtime).toEqual(stats.mtime);
+      expect(file.stat.atime).toEqual(new Date(then));
+      // TODO: fs atime gets updated when we fstatSync so we can't compare
+
+      fs.close(fd2, done);
     });
   });
 });
