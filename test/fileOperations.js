@@ -3,12 +3,20 @@
 var expect = require('expect');
 
 var fs = require('graceful-fs');
+var del = require('del');
 var path = require('path');
 
 var closeFd = require('../lib/dest/fileOperations/closeFd');
 var isOwner = require('../lib/dest/fileOperations/isOwner');
+var writeFile = require('../lib/dest/fileOperations/writeFile');
 var getModeDiff = require('../lib/dest/fileOperations/getModeDiff');
 var getTimesDiff = require('../lib/dest/fileOperations/getTimesDiff');
+
+var MASK_MODE = parseInt('777', 8);
+
+function masked(mode) {
+  return mode & MASK_MODE;
+}
 
 function noop() {}
 
@@ -343,6 +351,188 @@ describe('closeFd', function() {
       expect(err).toEqual(undefined);
 
       done();
+    });
+  });
+});
+
+describe('writeFile', function() {
+
+  var filepath;
+
+  beforeEach(function(done) {
+    filepath = path.join(__dirname, './fixtures/writeFile.txt');
+
+    done();
+  });
+
+  afterEach(function(done) {
+    del.sync(filepath);
+
+    done();
+  });
+
+  it('writes a file to the filesystem, does not close and returns the fd', function(done) {
+    var expected = 'test';
+    var content = new Buffer(expected);
+
+    writeFile(filepath, content, function(err, fd) {
+      expect(err).toNotExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.close(fd, function() {
+        var written = fs.readFileSync(filepath, 'utf-8');
+
+        expect(written).toEqual(expected);
+
+        done();
+      });
+    });
+  });
+
+  it('defaults to writing files with 0666 mode', function(done) {
+    var expected = parseInt('0666', 8) & (~process.umask());
+    var content = new Buffer('test');
+
+    writeFile(filepath, content, function(err, fd) {
+      expect(err).toNotExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.close(fd, function() {
+        var stats = fs.lstatSync(filepath);
+
+        expect(masked(stats.mode)).toEqual(expected);
+
+        done();
+      });
+    });
+  });
+
+  it('accepts a different mode in options', function(done) {
+    var expected = parseInt('0777', 8) & (~process.umask());
+    var content = new Buffer('test');
+    var options = {
+      mode: parseInt('0777', 8),
+    };
+
+    writeFile(filepath, content, options, function(err, fd) {
+      expect(err).toNotExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.close(fd, function() {
+        var stats = fs.lstatSync(filepath);
+
+        expect(masked(stats.mode)).toEqual(expected);
+
+        done();
+      });
+    });
+  });
+
+  it('defaults to opening files with write flag', function(done) {
+    var content = new Buffer('test');
+
+    writeFile(filepath, content, function(err, fd) {
+      expect(err).toNotExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.read(fd, new Buffer(4), 0, 4, 0, function(readErr) {
+        expect(readErr).toExist();
+
+        fs.close(fd, done);
+      });
+    });
+  });
+
+  it('accepts a different flag in options', function(done) {
+    var expected = 'test';
+    var content = new Buffer(expected);
+    var options = {
+      flag: 'w+',
+    };
+
+    writeFile(filepath, content, options, function(err, fd) {
+      expect(err).toNotExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.read(fd, new Buffer(4), 0, 4, 0, function(readErr, _, written) {
+        expect(readErr).toNotExist();
+
+        expect(written.toString()).toEqual(expected);
+
+        fs.close(fd, done);
+      });
+    });
+  });
+
+  it('appends to a file if append flag is given', function(done) {
+    var initial = 'test';
+    var toWrite = '-a-thing';
+
+    fs.writeFileSync(filepath, initial, 'utf-8');
+
+    var expected = initial + toWrite;
+
+    var content = new Buffer(toWrite);
+    var options = {
+      flag: 'a',
+    };
+
+    writeFile(filepath, content, options, function(err, fd) {
+      expect(err).toNotExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.close(fd, function() {
+        var written = fs.readFileSync(filepath, 'utf-8');
+
+        expect(written).toEqual(expected);
+
+        done();
+      });
+    });
+  });
+
+  it('does not pass a file descriptor if open call errors', function(done) {
+    filepath = path.join(__dirname, './not-exist-dir/writeFile.txt');
+    var content = new Buffer('test');
+
+    writeFile(filepath, content, function(err, fd) {
+      expect(err).toExist();
+      expect(typeof fd === 'number').toEqual(false);
+
+      done();
+    });
+  });
+
+  it('passes a file descriptor if write call errors', function(done) {
+    var existsFilepath = path.join(__dirname, './fixtures/test.coffee'); // File must exist
+    var content = new Buffer('test');
+    var options = {
+      flag: 'r',
+    };
+
+    writeFile(existsFilepath, content, options, function(err, fd) {
+      expect(err).toExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.close(fd, done);
+    });
+  });
+
+  it('passes an error if called without buffer for data', function(done) {
+    writeFile(filepath, 'test', function(err) {
+      expect(err).toExist();
+
+      done();
+    });
+  });
+
+  it('does not error if options is falsey', function(done) {
+    var content = new Buffer('test');
+    writeFile(filepath, content, null, function(err, fd) {
+      expect(err).toNotExist();
+      expect(typeof fd === 'number').toEqual(true);
+
+      fs.close(fd, done);
     });
   });
 });
