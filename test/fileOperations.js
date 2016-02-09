@@ -670,4 +670,124 @@ describe('updateMetadata', function() {
       fs.close(fd2, done);
     });
   });
+
+  it('forwards futimes error and descriptor upon error', function(done) {
+    var futimesSpy = expect.spyOn(fs, 'futimes').andCall(function(fd, atime, mtime, cb) {
+      cb(new Error('mocked error'));
+    });
+
+    var now = Date.now();
+    var then = now - 1000;
+    file.stat.mtime = new Date(then);
+    file.stat.atime = new Date(then);
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(err).toExist();
+      expect(futimesSpy.calls.length).toEqual(1);
+      expect(typeof fd2 === 'number').toEqual(true);
+
+      fs.close(fd2, done);
+    });
+  });
+
+  it('updates the mode on fs and vinyl object if there is a diff', function(done) {
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
+
+    var mode = parseInt('777', 8);
+    file.stat.mode = mode;
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(fchmodSpy.calls.length).toEqual(1);
+      var stats = fs.fstatSync(fd);
+      expect(file.stat.mode).toEqual(stats.mode);
+
+      fs.close(fd2, done);
+    });
+  });
+
+  it('forwards fchmod error and descriptor upon error', function(done) {
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCall(function(fd, mode, cb) {
+      cb(new Error('mocked error'));
+    });
+
+    var mode = parseInt('777', 8);
+    file.stat.mode = mode;
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(err).toExist();
+      expect(fchmodSpy.calls.length).toEqual(1);
+      expect(typeof fd2 === 'number').toEqual(true);
+
+      fs.close(fd2, done);
+    });
+  });
+
+  it('updates the mode & times on fs and vinyl object if there is a diff', function(done) {
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
+    var futimesSpy = expect.spyOn(fs, 'futimes').andCallThrough();
+
+    var mode = parseInt('777', 8);
+    file.stat.mode = mode;
+
+    var now = Date.now();
+    var then = now - 1000;
+    file.stat.mtime = new Date(then);
+    file.stat.atime = new Date(then);
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(fchmodSpy.calls.length).toEqual(1);
+      expect(futimesSpy.calls.length).toEqual(1);
+
+      var stats = fs.fstatSync(fd);
+      var mtimeMs = Date.parse(file.stat.mtime);
+      var mtime = resolution ? mtimeMs - (mtimeMs % resolution) : mtimeMs;
+      var atimeMs = Date.parse(file.stat.atime);
+      var atime = resolution ? atimeMs - (atimeMs % resolution) : atimeMs;
+
+      expect(file.stat.mtime).toEqual(new Date(then));
+      expect(mtime).toEqual(Date.parse(stats.mtime));
+      expect(file.stat.atime).toEqual(new Date(then));
+      expect(atime).toEqual(Date.parse(stats.atime));
+      expect(file.stat.mode).toEqual(stats.mode);
+
+      fs.close(fd2, done);
+    });
+  });
+
+  it('forwards fchmod error and descriptor through futimes if there is a time diff', function(done) {
+    var expectedErr = new Error('mocked error');
+
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCall(function(fd, mode, cb) {
+      cb(expectedErr);
+    });
+    var futimesSpy = expect.spyOn(fs, 'futimes').andCallThrough();
+
+    var mode = parseInt('777', 8);
+    file.stat.mode = mode;
+
+    var now = Date.now();
+    var then = now - 1000;
+    file.stat.mtime = new Date(then);
+    file.stat.atime = new Date(then);
+
+    var fd = fs.openSync(inputPath, 'w+');
+
+    updateMetadata(fd, file, function(err, fd2) {
+      expect(err).toExist();
+      expect(err).toEqual(expectedErr);
+      expect(fchmodSpy.calls.length).toEqual(1);
+      expect(futimesSpy.calls.length).toEqual(1);
+      expect(typeof fd2 === 'number').toEqual(true);
+
+      fs.close(fd2, done);
+    });
+  });
 });
