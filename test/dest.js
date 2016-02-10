@@ -1658,4 +1658,27 @@ describe('dest stream', function() {
     });
   });
 
+  it('error if content stream errors', function(done) {
+    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+    var inputBase = path.join(__dirname, './fixtures/');
+
+    var contentStream = through.obj();
+    var expectedFile = new File({
+      base: inputBase,
+      cwd: __dirname,
+      path: inputPath,
+      contents: contentStream,
+    });
+
+    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
+    stream.write(expectedFile);
+    setTimeout(function() {
+      contentStream.emit('error', new Error('mocked error'));
+    }, 100);
+    stream.on('error', function(err) {
+      expect(err).toExist();
+      done();
+    });
+  });
+
 });
