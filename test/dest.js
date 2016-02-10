@@ -28,6 +28,7 @@ var wipeOut = function() {
   chmodSpy.reset();
   fchmodSpy.reset();
   futimesSpy.reset();
+  expect.restoreSpies();
   del.sync(path.join(__dirname, './fixtures/highwatermark'));
   del.sync(path.join(__dirname, './out-fixtures/'));
 };
@@ -1569,6 +1570,90 @@ describe('dest stream', function() {
     stream.write(expectedFile);
     stream.on('error', function(err) {
       expect(err).toExist();
+      done();
+    });
+  });
+
+  it('errors if vinyl object is a directory and we cannot mkdirp', function(done) {
+    var outputDir = path.join(__dirname, './out-fixtures/');
+    var inputPath = path.join(__dirname, './other-dir/');
+
+    var expectedFile = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: inputPath,
+      contents: null,
+      stat: {
+        isDirectory: function() {
+          return true;
+        },
+      },
+    });
+
+    var stream = vfs.dest(outputDir, { dirMode: parseInt('000', 8) });
+    stream.write(expectedFile);
+    stream.on('error', function(err) {
+      expect(err).toExist();
+      done();
+    });
+  });
+
+  // TODO: is this correct behavior? had to adjust it
+  it('does not error if vinyl object is a directory and we cannot open it', function(done) {
+    var outputDir = path.join(__dirname, './out-fixtures/');
+    var inputPath = path.join(__dirname, './other-dir/');
+
+    var expectedFile = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: inputPath,
+      contents: null,
+      stat: {
+        isDirectory: function() {
+          return true;
+        },
+        mode: parseInt('000', 8),
+      },
+    });
+
+    var stream = vfs.dest(outputDir);
+    stream.write(expectedFile);
+    stream.on('error', function(err) {
+      expect(err).toNotExist();
+      done(err);
+    });
+    stream.end(function() {
+      var exists = fs.existsSync(path.join(outputDir, './other-dir/'));
+      expect(exists).toEqual(true);
+      done();
+    });
+  });
+
+  it('errors if vinyl object is a directory and open errors', function(done) {
+    var openSpy = expect.spyOn(fs, 'open').andCall(function(writePath, flag, cb) {
+      cb(new Error('mocked error'));
+    });
+
+    var outputDir = path.join(__dirname, './out-fixtures/');
+    var inputPath = path.join(__dirname, './other-dir/');
+
+    var expectedFile = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: inputPath,
+      contents: null,
+      stat: {
+        isDirectory: function() {
+          return true;
+        },
+      },
+    });
+
+    var stream = vfs.dest(outputDir);
+    stream.write(expectedFile);
+    stream.on('error', function(err) {
+      expect(err).toExist();
+      expect(openSpy.calls.length).toEqual(1);
       done();
     });
   });
