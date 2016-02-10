@@ -1681,4 +1681,70 @@ describe('dest stream', function() {
     });
   });
 
+  it('does not error on a file we do not own (mtime)', function(done) {
+    var outDir = path.join(__dirname, './not-owned/');
+
+    var expectedFile = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: 'not-owned/not-owned.txt',
+      contents: new Buffer('Something new'),
+      stat: {
+        mtime: new Date(Date.now() - 1000),
+      },
+    });
+
+    var buffered = [];
+
+    var onEnd = function() {
+      buffered.length.should.equal(1);
+      buffered[0].should.equal(expectedFile);
+      done();
+    };
+
+    var stream = vfs.dest(outDir);
+
+    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
+    stream.pipe(bufferStream);
+    stream.write(expectedFile);
+    stream.on('error', function(err) {
+      expect(err).toNotExist();
+      done(err);
+    });
+    stream.end();
+  });
+
+  it('does not error on a file we do not own (mode)', function(done) {
+    var outDir = path.join(__dirname, './not-owned/');
+
+    var expectedFile = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: 'not-owned/not-owned.txt',
+      contents: new Buffer('Something new'),
+      stat: {
+        mode: parseInt('777', 8),
+      },
+    });
+
+    var buffered = [];
+
+    var onEnd = function() {
+      buffered.length.should.equal(1);
+      buffered[0].should.equal(expectedFile);
+      done();
+    };
+
+    var stream = vfs.dest(outDir);
+
+    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
+    stream.pipe(bufferStream);
+    stream.write(expectedFile);
+    stream.on('error', function(err) {
+      expect(err).toNotExist();
+      done(err);
+    });
+    stream.end();
+  });
+
 });
