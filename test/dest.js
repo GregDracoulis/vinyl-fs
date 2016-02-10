@@ -12,6 +12,7 @@ var path = require('path');
 var fs = require('graceful-fs');
 var del = require('del');
 var Writeable = require('readable-stream/writable');
+var expect = require('expect');
 
 var bufEqual = require('buffer-equal');
 var through = require('through2');
@@ -91,6 +92,38 @@ describe('dest stream', function() {
     var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
 
     var stream = vfs.dest(path.join(__dirname, './out-fixtures/'), { sourcemaps: true });
+    stream.pipe(bufferStream);
+    stream.write(expectedFile);
+    stream.end();
+  });
+
+  it('should not explode if sourcemap option is an object', function(done) {
+    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+
+    var options = {
+      sourcemaps: {
+        addComment: false,
+      },
+    };
+
+    var expectedFile = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: inputPath,
+      contents: null,
+    });
+
+    var buffered = [];
+
+    var onEnd = function() {
+      buffered.length.should.equal(1);
+      buffered[0].should.equal(expectedFile);
+      done();
+    };
+
+    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
+
+    var stream = vfs.dest(path.join(__dirname, './out-fixtures/'), options);
     stream.pipe(bufferStream);
     stream.write(expectedFile);
     stream.end();
@@ -1517,6 +1550,27 @@ describe('dest stream', function() {
         fileCount.should.equal(numFiles);
         done();
       });
+  });
+
+  it('errors if we cannot mkdirp', function(done) {
+    var outputDir = path.join(__dirname, './out-fixtures/');
+    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+
+    fs.mkdirSync(outputDir, parseInt('000', 8));
+
+    var expectedFile = new File({
+      base: __dirname,
+      cwd: __dirname,
+      path: inputPath,
+      contents: null,
+    });
+
+    var stream = vfs.dest(outputDir);
+    stream.write(expectedFile);
+    stream.on('error', function(err) {
+      expect(err).toExist();
+      done();
+    });
   });
 
 });
