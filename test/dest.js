@@ -670,7 +670,7 @@ describe('dest stream', function() {
     var buffered = [];
 
     var onEnd = function() {
-      should(futimesSpy.called).be.not.ok;
+      futimesSpy.called.should.equal(false);
       buffered.length.should.equal(1);
       buffered[0].should.equal(expectedFile);
       fs.existsSync(expectedPath).should.equal(true);
@@ -708,7 +708,7 @@ describe('dest stream', function() {
     var buffered = [];
 
     var onEnd = function() {
-      should(futimesSpy.called).be.ok;
+      futimesSpy.called.should.equal(true);
       buffered.length.should.equal(1);
       buffered[0].should.equal(expectedFile);
       fs.existsSync(expectedPath).should.equal(true);
@@ -748,7 +748,7 @@ describe('dest stream', function() {
     var buffered = [];
 
     var onEnd = function() {
-      should(futimesSpy.called).be.not.ok;
+      futimesSpy.called.should.equal(false);
       buffered.length.should.equal(1);
       buffered[0].should.equal(expectedFile);
       fs.existsSync(expectedPath).should.equal(true);
@@ -787,7 +787,7 @@ describe('dest stream', function() {
     var buffered = [];
 
     var onEnd = function() {
-      should(futimesSpy.called).be.ok;
+      futimesSpy.called.should.equal(true);
       buffered.length.should.equal(1);
       buffered[0].should.equal(expectedFile);
       fs.existsSync(expectedPath).should.equal(true);
@@ -1036,7 +1036,7 @@ describe('dest stream', function() {
 
     var onEnd = function() {
       expectedCount.should.equal(1);
-      should(fchmodSpy.called).be.not.ok;
+      fchmodSpy.called.should.equal(false);
       realMode(fs.lstatSync(expectedPath).mode).should.equal(expectedMode);
       done();
     };
@@ -1085,7 +1085,7 @@ describe('dest stream', function() {
 
     var onEnd = function() {
       expectedCount.should.equal(1);
-      should(fchmodSpy.called).be.not.ok;
+      fchmodSpy.called.should.equal(false);
       done();
     };
 
