@@ -1682,6 +1682,12 @@ describe('dest stream', function() {
   });
 
   it('does not error on a file we do not own (mtime)', function(done) {
+    if (!process.env.TRAVIS) {
+      console.log('Skipping because .travis.yml changes file ownership to root');
+      this.skip();
+      return;
+    }
+
     var outDir = path.join(__dirname, './not-owned/');
 
     var expectedFile = new File({
@@ -1715,6 +1721,12 @@ describe('dest stream', function() {
   });
 
   it('does not error on a file we do not own (mode)', function(done) {
+    if (!process.env.TRAVIS) {
+      console.log('Skipping because .travis.yml changes file ownership to root');
+      this.skip();
+      return;
+    }
+
     var outDir = path.join(__dirname, './not-owned/');
 
     var expectedFile = new File({
