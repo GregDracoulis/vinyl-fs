@@ -8,12 +8,14 @@ var path = require('path');
 var File = require('vinyl');
 var defaultResolution = require('default-resolution');
 
-var closeFd = require('../lib/dest/fileOperations/closeFd');
-var isOwner = require('../lib/dest/fileOperations/isOwner');
-var writeFile = require('../lib/dest/fileOperations/writeFile');
-var getModeDiff = require('../lib/dest/fileOperations/getModeDiff');
-var getTimesDiff = require('../lib/dest/fileOperations/getTimesDiff');
-var updateMetadata = require('../lib/dest/fileOperations/updateMetadata');
+var fo = require('../lib/fileOperations');
+
+var closeFd = fo.closeFd;
+var isOwner = fo.isOwner;
+var writeFile = fo.writeFile;
+var getModeDiff = fo.getModeDiff;
+var getTimesDiff = fo.getTimesDiff;
+var updateMetadata = fo.updateMetadata;
 
 var resolution = defaultResolution();
 
