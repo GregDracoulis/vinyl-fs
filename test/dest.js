@@ -394,7 +394,8 @@ describe('dest stream', function() {
 
     var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
 
-    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
+    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)));
+    bufferStream.on('finish', onEnd);
     stream.pipe(bufferStream);
     stream.write(expectedFile);
     setTimeout(function() {
