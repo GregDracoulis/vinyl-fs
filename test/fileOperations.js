@@ -45,6 +45,11 @@ describe('isOwner', function() {
       process.geteuid = noop;
     }
 
+    // Windows :(
+    if (typeof process.getuid !== 'function') {
+      process.getuid = noop;
+    }
+
     getuidSpy = expect.spyOn(process, 'getuid').andReturn(ownerStat.uid);
     geteuidSpy = expect.spyOn(process, 'geteuid').andReturn(ownerStat.uid);
 
@@ -58,8 +63,15 @@ describe('isOwner', function() {
       delete process.geteuid;
     }
 
+    // Windows :(
+    if (process.getuid === noop) {
+      delete process.getuid;
+    }
+
     done();
   });
+
+  // TODO: test for having neither
 
   it('uses process.geteuid() when available', function(done) {
 
