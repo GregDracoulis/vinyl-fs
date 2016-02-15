@@ -396,10 +396,9 @@ describe('writeFile', function() {
     done();
   });
 
-  afterEach(function(done) {
-    del.sync(filepath);
-
-    done();
+  afterEach(function() {
+    // Async del to get sort-of-fix for https://github.com/isaacs/rimraf/issues/72
+    return del(filepath);
   });
 
   it('writes a file to the filesystem, does not close and returns the fd', function(done) {

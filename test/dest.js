@@ -30,8 +30,12 @@ var wipeOut = function() {
   fchmodSpy.reset();
   futimesSpy.reset();
   expect.restoreSpies();
-  del.sync(path.join(__dirname, './fixtures/highwatermark'));
-  del.sync(path.join(__dirname, './out-fixtures/'));
+
+  // Async del to get sort-of-fix for https://github.com/isaacs/rimraf/issues/72
+  return del(path.join(__dirname, './fixtures/highwatermark'))
+    .then(function(){
+      return del(path.join(__dirname, './out-fixtures/'));
+    });
 };
 
 var dataWrap = function(fn) {
