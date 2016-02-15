@@ -1,12 +1,6 @@
 # http://www.appveyor.com/docs/appveyor-yml
 # http://www.appveyor.com/docs/lang/nodejs-iojs
 
-branches:
-  # whitelist
-  only:
-    - master
-    - blaine-feature-metadata-refactor
-
 environment:
   matrix:
     # node.js
