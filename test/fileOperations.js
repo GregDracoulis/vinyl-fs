@@ -737,14 +737,14 @@ describe('updateMetadata', function() {
   });
 
   it('forwards fchmod error and descriptor upon error', function(done) {
-    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCall(function(fd, mode, cb) {
-      cb(new Error('mocked error'));
-    });
-
     var mode = parseInt('777', 8);
     file.stat.mode = mode;
 
     var fd = fs.openSync(inputPath, 'w+');
+
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCall(function(fd, mode, cb) {
+      cb(new Error('mocked error'));
+    });
 
     updateMetadata(fd, file, function(err, fd2) {
       expect(err).toExist();
