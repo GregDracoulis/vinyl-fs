@@ -333,40 +333,6 @@ describe('dest stream', function() {
     stream.end();
   });
 
-  it('should set the mode of a written buffer file if set on the vinyl object', function(done) {
-    if (os.platform() === 'win32') {
-      console.log('Changing the mode of a file is not supported by node.js in Windows.');
-      this.skip();
-      return;
-    }
-
-    var inputPath = path.join(__dirname, './fixtures/test.coffee');
-    var inputBase = path.join(__dirname, './fixtures/');
-    var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
-    var expectedContents = fs.readFileSync(inputPath);
-    var expectedMode = parseInt('655', 8);
-
-    var expectedFile = new File({
-      base: inputBase,
-      cwd: __dirname,
-      path: inputPath,
-      contents: expectedContents,
-      stat: {
-        mode: expectedMode,
-      },
-    });
-
-    var onEnd = function() {
-      realMode(fs.lstatSync(expectedPath).mode).should.equal(expectedMode);
-      done();
-    };
-
-    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
-    stream.on('end', onEnd);
-    stream.write(expectedFile);
-    stream.end();
-  });
-
   it('should write streaming files to the right folder', function(done) {
     var inputPath = path.join(__dirname, './fixtures/test.coffee');
     var inputBase = path.join(__dirname, './fixtures/');
@@ -409,52 +375,12 @@ describe('dest stream', function() {
     stream.end();
   });
 
-  it('should set the mode of a written stream file if set on the vinyl object', function(done) {
-    if (os.platform() === 'win32') {
-      console.log('Changing the mode of a file is not supported by node.js in Windows.');
-      this.skip();
-      return;
-    }
-
-    var inputPath = path.join(__dirname, './fixtures/test.coffee');
-    var inputBase = path.join(__dirname, './fixtures/');
-    var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
-    var expectedContents = fs.readFileSync(inputPath);
-    var expectedMode = parseInt('655', 8);
-
-    var contentStream = through.obj();
-    var expectedFile = new File({
-      base: inputBase,
-      cwd: __dirname,
-      path: inputPath,
-      contents: contentStream,
-      stat: {
-        mode: expectedMode,
-      },
-    });
-
-    var onEnd = function() {
-      realMode(fs.lstatSync(expectedPath).mode).should.equal(expectedMode);
-      done();
-    };
-
-    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
-    stream.on('end', onEnd);
-    stream.write(expectedFile);
-    setTimeout(function() {
-      contentStream.write(expectedContents);
-      contentStream.end();
-    }, 100);
-    stream.end();
-  });
-
   it('should write directories to the right folder', function(done) {
     var inputPath = path.join(__dirname, './fixtures/test');
     var inputBase = path.join(__dirname, './fixtures/');
     var expectedPath = path.join(__dirname, './out-fixtures/test');
     var expectedCwd = __dirname;
     var expectedBase = path.join(__dirname, './out-fixtures');
-    var expectedMode = parseInt('655', 8);
 
     var expectedFile = new File({
       base: inputBase,
@@ -465,7 +391,6 @@ describe('dest stream', function() {
         isDirectory: function() {
           return true;
         },
-        mode: expectedMode,
       },
     });
 
@@ -479,7 +404,6 @@ describe('dest stream', function() {
       buffered[0].path.should.equal(expectedPath, 'path should have changed');
       fs.existsSync(expectedPath).should.equal(true);
       fs.lstatSync(expectedPath).isDirectory().should.equal(true);
-      realMode(fs.lstatSync(expectedPath).mode).should.equal(expectedMode);
       done();
     };
 
