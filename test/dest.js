@@ -33,7 +33,7 @@ var wipeOut = function() {
 
   // Async del to get sort-of-fix for https://github.com/isaacs/rimraf/issues/72
   return del(path.join(__dirname, './fixtures/highwatermark'))
-    .then(function(){
+    .then(function() {
       return del(path.join(__dirname, './out-fixtures/'));
     });
 };
