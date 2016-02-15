@@ -2,6 +2,7 @@
 
 var expect = require('expect');
 
+var os = require('os');
 var fs = require('graceful-fs');
 var del = require('del');
 var path = require('path');
@@ -438,6 +439,12 @@ describe('writeFile', function() {
   });
 
   it('accepts a different mode in options', function(done) {
+    if (os.platform() === 'win32') {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
     var expected = parseInt('0777', 8) & (~process.umask());
     var content = new Buffer('test');
     var options = {
@@ -707,6 +714,12 @@ describe('updateMetadata', function() {
   });
 
   it('updates the mode on fs and vinyl object if there is a diff', function(done) {
+    if (os.platform() === 'win32') {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
     var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
 
     var mode = parseInt('777', 8);
