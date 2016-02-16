@@ -765,7 +765,7 @@ describe('dest stream', function() {
 
     var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
     stream.on('error', function(err) {
-      err.code.should.equal('EACCES');
+      expect(err).toExist();
       done();
     });
     stream.write(expectedFile);
