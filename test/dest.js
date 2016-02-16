@@ -845,54 +845,6 @@ describe('dest stream', function() {
     stream.write(expectedFile);
   });
 
-  it('should see a file with special chmod (setuid/setgid/sticky) as matching', function(done) {
-    var inputPath = path.join(__dirname, './fixtures/test.coffee');
-    var inputBase = path.join(__dirname, './fixtures/');
-    var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
-    var expectedContents = fs.readFileSync(inputPath);
-    var expectedBase = path.join(__dirname, './out-fixtures');
-    var expectedMode = parseInt('3722', 8);
-    var normalMode = parseInt('722', 8);
-
-    var expectedFile = new File({
-      base: inputBase,
-      cwd: __dirname,
-      path: inputPath,
-      contents: expectedContents,
-      stat: {
-        mode: normalMode,
-      },
-    });
-
-    var expectedCount = 0;
-    spies.setError(function(mod, fn) {
-      if (fn === 'fstat' && typeof arguments[2] === 'number') {
-        expectedCount++;
-      }
-    });
-
-    var onEnd = function() {
-      expectedCount.should.equal(1);
-      fchmodSpy.called.should.equal(false);
-      done();
-    };
-
-    fs.mkdirSync(expectedBase);
-    fs.closeSync(fs.openSync(expectedPath, 'w'));
-    fs.chmodSync(expectedPath, expectedMode);
-
-    fstatSpy.reset();
-    fchmodSpy.reset();
-    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
-
-    var buffered = [];
-    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
-
-    stream.pipe(bufferStream);
-    stream.write(expectedFile);
-    stream.end();
-  });
-
   it('should not overwrite files with overwrite option set to false', function(done) {
     var inputPath = path.join(__dirname, './fixtures/test.coffee');
     var inputBase = path.join(__dirname, './fixtures/');

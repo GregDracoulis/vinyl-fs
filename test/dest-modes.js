@@ -317,4 +317,46 @@ describe('.dest() with custom modes', function() {
     stream.write(expectedFile);
     stream.end();
   });
+
+  it('should see a file with special chmod (setuid/setgid/sticky) as matching', function(done) {
+    if (isWindows) {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
+
+    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+    var inputBase = path.join(__dirname, './fixtures/');
+    var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
+    var expectedContents = fs.readFileSync(inputPath);
+    var expectedBase = path.join(__dirname, './out-fixtures');
+    var expectedMode = parseInt('3722', 8);
+    var normalMode = parseInt('722', 8);
+
+    var expectedFile = new File({
+      base: inputBase,
+      cwd: __dirname,
+      path: inputPath,
+      contents: expectedContents,
+      stat: {
+        mode: normalMode,
+      },
+    });
+
+    var onEnd = function() {
+      expect(fchmodSpy.calls.length).toEqual(0);
+      done();
+    };
+
+    fs.mkdirSync(expectedBase);
+    fs.closeSync(fs.openSync(expectedPath, 'w'));
+    fs.chmodSync(expectedPath, expectedMode);
+
+    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
+    stream.on('end', onEnd);
+    stream.write(expectedFile);
+    stream.end();
+  });
 });
