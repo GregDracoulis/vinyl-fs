@@ -28,6 +28,8 @@ function masked(mode) {
 
 function noop() {}
 
+var isWindows = (os.platform() === 'win32');
+
 describe('isOwner', function() {
 
   var ownerStat = {
@@ -438,7 +440,7 @@ describe('writeFile', function() {
   });
 
   it('accepts a different mode in options', function(done) {
-    if (os.platform() === 'win32') {
+    if (isWindows) {
       console.log('Changing the mode of a file is not supported by node.js in Windows.');
       this.skip();
       return;
@@ -713,7 +715,7 @@ describe('updateMetadata', function() {
   });
 
   it('updates the mode on fs and vinyl object if there is a diff', function(done) {
-    if (os.platform() === 'win32') {
+    if (isWindows) {
       console.log('Changing the mode of a file is not supported by node.js in Windows.');
       this.skip();
       return;
@@ -755,7 +757,7 @@ describe('updateMetadata', function() {
   });
 
   it('updates the mode & times on fs and vinyl object if there is a diff', function(done) {
-    if (os.platform() === 'win32') {
+    if (isWindows) {
       console.log('Changing the mode of a file is not supported by node.js in Windows.');
       this.skip();
       return;
