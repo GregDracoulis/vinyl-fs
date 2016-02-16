@@ -812,7 +812,7 @@ describe('updateMetadata', function() {
     file.stat.mtime = new Date(then);
     file.stat.atime = new Date(then);
 
-    var fd = fs.openSync(inputPath, 'w+');
+    var fd = fs.openSync(inputPath, 'w');
 
     updateMetadata(fd, file, function(err, fd2) {
       expect(err).toExist();
