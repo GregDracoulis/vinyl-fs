@@ -397,7 +397,10 @@ describe('source stream', function() {
   });
 
   it('should follow file symlinks', function(done) {
+    var symlinkPath = path.join(__dirname, './fixtures/test-symlink');
     var expectedPath = path.join(__dirname, './fixtures/test.coffee');
+
+    fs.symlinkSync(expectedPath, symlinkPath);
 
     var stream = vfs.src('./fixtures/test-symlink', { cwd: __dirname });
     stream.on('data', function(file) {
