@@ -751,16 +751,12 @@ describe('dest stream', function() {
     var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
     var expectedContents = fs.readFileSync(inputPath);
     var expectedBase = path.join(__dirname, './out-fixtures');
-    var expectedMode = parseInt('722', 8);
 
     var expectedFile = new File({
       base: inputBase,
       cwd: __dirname,
       path: inputPath,
       contents: expectedContents,
-      stat: {
-        mode: expectedMode,
-      },
     });
 
     fs.mkdirSync(expectedBase);
