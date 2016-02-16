@@ -6,6 +6,7 @@ var statSpy = spies.statSpy;
 
 var vfs = require('../');
 
+var os = require('os');
 var path = require('path');
 var fs = require('graceful-fs');
 var rimraf = require('rimraf');
@@ -34,6 +35,8 @@ var dataWrap = function(fn) {
 var realMode = function(n) {
   return n & parseInt('777', 8);
 };
+
+var isWindows = (os.platform() === 'win32');
 
 describe('symlink stream', function() {
   beforeEach(wipeOut);
@@ -307,6 +310,12 @@ describe('symlink stream', function() {
   });
 
   it('should use different modes for files and directories', function(done) {
+    if (isWindows) {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
     var inputBase = path.join(__dirname, './fixtures');
     var inputPath = path.join(__dirname, './fixtures/wow/suchempty');
     var expectedBase = path.join(__dirname, './out-fixtures/wow');
