@@ -1318,6 +1318,17 @@ describe('dest stream', function() {
   });
 
   it('errors if vinyl object is a directory and we cannot mkdirp', function(done) {
+    var ogMkdir = fs.mkdir;
+
+    var mkdirSpy = expect.spyOn(fs, 'mkdir').andCall(function() {
+      if (mkdirSpy.calls.length > 1) {
+        var callback = arguments[arguments.length - 1];
+        callback(new Error('mocked error'));
+      } else {
+        ogMkdir.apply(null, arguments);
+      }
+    });
+
     var outputDir = path.join(__dirname, './out-fixtures/');
     var inputPath = path.join(__dirname, './other-dir/');
 
@@ -1333,10 +1344,11 @@ describe('dest stream', function() {
       },
     });
 
-    var stream = vfs.dest(outputDir, { dirMode: parseInt('000', 8) });
+    var stream = vfs.dest(outputDir);
     stream.write(expectedFile);
     stream.on('error', function(err) {
       expect(err).toExist();
+      expect(mkdirSpy.calls.length).toEqual(2);
       done();
     });
   });
