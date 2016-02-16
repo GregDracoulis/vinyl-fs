@@ -14,6 +14,8 @@ var vfs = require('../');
 function wipeOut() {
   this.timeout(20000);
 
+  expect.restoreSpies();
+
   // Async del to get sort-of-fix for https://github.com/isaacs/rimraf/issues/72
   return del(path.join(__dirname, './fixtures/highwatermark'))
     .then(function() {
@@ -251,6 +253,7 @@ describe('.dest() with custom modes', function() {
     var inputBase = path.join(__dirname, './fixtures');
     var inputPath = path.join(__dirname, './fixtures/wow/suchempty');
     var expectedBase = path.join(__dirname, './out-fixtures/wow');
+    var expectedPath = path.join(__dirname, './out-fixtures/wow/suchempty');
     var expectedDirMode = parseInt('755', 8);
     var expectedFileMode = parseInt('655', 8);
 
@@ -258,14 +261,13 @@ describe('.dest() with custom modes', function() {
       base: inputBase,
       cwd: __dirname,
       path: inputPath,
+      contents: fs.readFileSync(inputPath),
       stat: fs.statSync(inputPath),
     });
 
-    var buffered = [];
-
     var onEnd = function() {
       expect(masked(fs.lstatSync(expectedBase).mode)).toEqual(expectedDirMode);
-      expect(masked(buffered[0].stat.mode)).toEqual(expectedFileMode);
+      expect(masked(fs.lstatSync(expectedPath).mode)).toEqual(expectedFileMode);
       done();
     };
 
@@ -276,6 +278,43 @@ describe('.dest() with custom modes', function() {
     });
     stream.on('end', onEnd);
     stream.write(firstFile);
+    stream.end();
+  });
+
+  it('should not fchmod a matching file', function(done) {
+    if (isWindows) {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
+    var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
+
+    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+    var inputBase = path.join(__dirname, './fixtures/');
+    var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
+    var expectedContents = fs.readFileSync(inputPath);
+    var expectedMode = parseInt('711', 8);
+
+    var expectedFile = new File({
+      base: inputBase,
+      cwd: __dirname,
+      path: inputPath,
+      contents: expectedContents,
+      stat: {
+        mode: expectedMode,
+      },
+    });
+
+    var onEnd = function() {
+      expect(fchmodSpy.calls.length).toEqual(0);
+      expect(masked(fs.lstatSync(expectedPath).mode)).toEqual(expectedMode);
+      done();
+    };
+
+    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
+    stream.on('end', onEnd);
+    stream.write(expectedFile);
     stream.end();
   });
 });
