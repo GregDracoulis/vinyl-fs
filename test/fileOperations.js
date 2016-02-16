@@ -755,6 +755,12 @@ describe('updateMetadata', function() {
   });
 
   it('updates the mode & times on fs and vinyl object if there is a diff', function(done) {
+    if (os.platform() === 'win32') {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
     var fchmodSpy = expect.spyOn(fs, 'fchmod').andCallThrough();
     var futimesSpy = expect.spyOn(fs, 'futimes').andCallThrough();
 
