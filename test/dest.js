@@ -1293,10 +1293,13 @@ describe('dest stream', function() {
   });
 
   it('errors if we cannot mkdirp', function(done) {
+    var mkdirSpy = expect.spyOn(fs, 'mkdir').andCall(function() {
+      var callback = arguments[arguments.length - 1];
+      callback(new Error('mocked error'));
+    });
+
     var outputDir = path.join(__dirname, './out-fixtures/');
     var inputPath = path.join(__dirname, './fixtures/test.coffee');
-
-    fs.mkdirSync(outputDir, parseInt('000', 8));
 
     var expectedFile = new File({
       base: __dirname,
@@ -1309,6 +1312,7 @@ describe('dest stream', function() {
     stream.write(expectedFile);
     stream.on('error', function(err) {
       expect(err).toExist();
+      expect(mkdirSpy.calls.length).toEqual(1);
       done();
     });
   });
