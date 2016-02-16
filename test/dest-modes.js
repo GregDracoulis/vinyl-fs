@@ -136,4 +136,146 @@ describe('.dest() with custom modes', function() {
     stream.write(expectedFile);
     stream.end();
   });
+
+  it('should write new files with the mode specified in options', function(done) {
+    if (isWindows) {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
+    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+    var inputBase = path.join(__dirname, './fixtures/');
+    var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
+    var expectedContents = fs.readFileSync(inputPath);
+    var expectedMode = parseInt('744', 8);
+
+    var expectedFile = new File({
+      base: inputBase,
+      cwd: __dirname,
+      path: inputPath,
+      contents: expectedContents,
+    });
+
+    var onEnd = function() {
+      expect(masked(fs.lstatSync(expectedPath).mode)).toEqual(expectedMode);
+      done();
+    };
+
+    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname, mode: expectedMode });
+    stream.on('end', onEnd);
+    stream.write(expectedFile);
+    stream.end();
+  });
+
+  it('should update file mode to match the vinyl mode', function(done) {
+    if (isWindows) {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
+    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+    var inputBase = path.join(__dirname, './fixtures/');
+    var expectedPath = path.join(__dirname, './out-fixtures/test.coffee');
+    var expectedContents = fs.readFileSync(inputPath);
+    var expectedBase = path.join(__dirname, './out-fixtures');
+    var startMode = parseInt('0655', 8);
+    var expectedMode = parseInt('0722', 8);
+
+    var expectedFile = new File({
+      base: inputBase,
+      cwd: __dirname,
+      path: inputPath,
+      contents: expectedContents,
+      stat: {
+        mode: expectedMode,
+      },
+    });
+
+    var onEnd = function() {
+      expect(masked(fs.lstatSync(expectedPath).mode)).toEqual(expectedMode);
+      done();
+    };
+
+    fs.mkdirSync(expectedBase);
+    fs.closeSync(fs.openSync(expectedPath, 'w'));
+    fs.chmodSync(expectedPath, startMode);
+
+    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
+    stream.on('end', onEnd);
+    stream.write(expectedFile);
+    stream.end();
+  });
+
+  // TODO: explodes on Windows
+  it('should update directory mode to match the vinyl mode', function(done) {
+    var inputBase = path.join(__dirname, './fixtures/');
+    var inputPath = path.join(__dirname, './fixtures/wow');
+    var expectedPath = path.join(__dirname, './out-fixtures/wow');
+    var expectedBase = path.join(__dirname, './out-fixtures');
+
+    var firstFile = new File({
+      base: inputBase,
+      cwd: __dirname,
+      path: expectedPath,
+      stat: fs.statSync(inputPath),
+    });
+    var startMode = firstFile.stat.mode;
+    var expectedMode = parseInt('727', 8);
+
+    var expectedFile = new File(firstFile);
+    expectedFile.stat.mode = (startMode & ~parseInt('7777', 8)) | expectedMode;
+
+    var onEnd = function() {
+      expect(masked(fs.lstatSync(expectedPath).mode)).toEqual(expectedMode);
+      done();
+    };
+
+    fs.mkdirSync(expectedBase);
+
+    var stream = vfs.dest('./out-fixtures/', { cwd: __dirname });
+    stream.on('end', onEnd);
+    stream.write(firstFile);
+    stream.write(expectedFile);
+    stream.end();
+  });
+
+  it('should use different modes for files and directories', function(done) {
+    if (isWindows) {
+      console.log('Changing the mode of a file is not supported by node.js in Windows.');
+      this.skip();
+      return;
+    }
+
+    var inputBase = path.join(__dirname, './fixtures');
+    var inputPath = path.join(__dirname, './fixtures/wow/suchempty');
+    var expectedBase = path.join(__dirname, './out-fixtures/wow');
+    var expectedDirMode = parseInt('755', 8);
+    var expectedFileMode = parseInt('655', 8);
+
+    var firstFile = new File({
+      base: inputBase,
+      cwd: __dirname,
+      path: inputPath,
+      stat: fs.statSync(inputPath),
+    });
+
+    var buffered = [];
+
+    var onEnd = function() {
+      expect(masked(fs.lstatSync(expectedBase).mode)).toEqual(expectedDirMode);
+      expect(masked(buffered[0].stat.mode)).toEqual(expectedFileMode);
+      done();
+    };
+
+    var stream = vfs.dest('./out-fixtures/', {
+      cwd: __dirname,
+      mode: expectedFileMode,
+      dirMode: expectedDirMode,
+    });
+    stream.on('end', onEnd);
+    stream.write(firstFile);
+    stream.end();
+  });
 });
