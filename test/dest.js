@@ -1265,14 +1265,13 @@ describe('dest stream', function() {
     // This can be a very slow test on boxes with slow disk i/o
     this.timeout(0);
 
-    // Make a ton of hard links
+    // Make a ton of files. Changed from hard links due to Windows failures
     var numFiles = 6000;
-    var srcFile = path.join(__dirname, './fixtures/test.coffee');
     fs.mkdirSync(path.join(__dirname, './out-fixtures'));
     fs.mkdirSync(path.join(__dirname, './out-fixtures/in/'));
 
     for (var idx = 0; idx < numFiles; idx++) {
-      fs.linkSync(srcFile, path.join(__dirname, './out-fixtures/in/test' + idx + '.coffee'));
+      fs.writeFileSync(path.join(__dirname, './out-fixtures/in/test' + idx + '.coffee'), '');
     }
 
     var srcStream = vfs.src(path.join(__dirname, './out-fixtures/in/*.coffee'), { buffer: false });
