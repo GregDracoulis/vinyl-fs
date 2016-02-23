@@ -1267,6 +1267,16 @@ describe('dest stream', function() {
       .once('finish', done);
   });
 
+  it('should succeed on windows', function(done) {
+    var srcPath = path.join(__dirname, './fixtures/*.txt');
+    var srcStream = vfs.src(srcPath, { buffer: false });
+    var destStream = vfs.dest('./out-fixtures', { cwd: __dirname });
+
+    srcStream
+      .pipe(destStream)
+      .once('finish', done);
+  });
+
   it('should not exhaust available file descriptors when streaming thousands of files', function(done) {
     // This can be a very slow test on boxes with slow disk i/o
     this.timeout(0);
